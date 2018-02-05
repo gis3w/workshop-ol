@@ -1,0 +1,1 @@
+[{{include.title | default: include.url}}]({{include.url}}){:target="_blank"}

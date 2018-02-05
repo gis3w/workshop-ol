@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - Interrogazione WMS</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+    <style>
+        .map {
+            height: 500px;
+        }
+        .results {
+            font-size: 14px;
+            background-color: white;
+            overflow: auto;
+            padding: 10px;
+            max-height: 400px;
+            max-width: 400px;
+            white-space: nowrap;
+            box-shadow: 7px 7px 7px #222222;
+            border: 1px solid lightgrey;
+        }
+        .results td {
+            font-size: 12px;
+        }
+        .results td.fieldname {
+            font-weight: bold
+        }
+    </style>
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <div id="layerswitcher">
+        <input type="radio" name="baselayer" value="bing">Bing Satellite</input>
+        <input type="radio" name="baselayer" value="osm">OpenStreetMap</input>
+        <input type="radio" name="baselayer" value="paesaggio_rt">Sfondo paesaggistico (Geoscopio)</input>
+    </div>
+    <div id="results" class="results"></div>
+    <script src="assets/js/jquery-3.2.1.min.js"></script>
+    <script src="assets/js/ol-debug.js"></script>
+    <script src="assets/js/utils.js"></script>
+    <script>
+        var PROXY_URL = "proxy.php?mode=native&url=";
+
+        // ------ SEZIONE LAYER DI BASE ------ //
+        var BASELAYERS = ['bing','osm','paesaggio_rt']
+        var DEFAULT_BASELAYER = 'bing';
+
+        var map = new ol.Map({
+            target: 'map',
+            view: new ol.View({
+              center: [1253220.67184,5430658.10783],
+              zoom: 15
+            })
+        });
+
+        var bing = new ol.layer.Tile({
+            source: new ol.source.BingMaps({
+                culture : 'it',
+                imagerySet: 'aerial',
+                key: 'Ao9aCYUmYph5zHSQEsQnw92ZS9gqRCdiDJIpK9z5RmWnJDnVyOGTD0TAQDX1niof'
+            }),
+            name: "bing",
+            visible: false
+        });
+        map.addLayer(bing);
+
+        var osm = new ol.layer.Tile({
+            source: new ol.source.OSM(),
+            name: "osm",
+            visible: false
+        });
+        map.addLayer(osm);
+
+        var paesaggio_rt = new ol.layer.Image({
+            source: new ol.source.ImageWMS({
+                url: "http://www502.regione.toscana.it/wmsraster/com.rt.wms.RTmap/wms?map=wmstopogr&",
+                params: {
+                    LAYERS: ["rt_topogr.topografica50k.rt"]
+                }
+            }),
+            name: "paesaggio_rt",
+            visible: false
+        });
+        map.addLayer(paesaggio_rt);
+
+        // funzione per cambiare (toggle) il layer di base, uno tra quelli dichiarati nell'array BASELAYERS
+        function switchBaseLayer(baseLayerName) {
+            var layers = map.getLayers();
+            layers.forEach(function(layer){
+                var layerName = layer.get('name');
+                if (BASELAYERS.indexOf(layerName) > -1) {
+                    var visible = (layerName == baseLayerName);
+                    layer.setVisible(visible);
+                }
+            })
+        }
+        // all'inizio attivo il baselayer definito di default
+        switchBaseLayer(DEFAULT_BASELAYER);
+
+        // e attivo il flag del rispettivo input radio
+        var radios = $('input[type=radio][name=baselayer]');
+        radios.filter('[value='+DEFAULT_BASELAYER+']').prop('checked', true);
+
+        // sto in ascolto della selezione dell'input radio per attivare il corrispondente layer
+        radios.change(function() {
+            var baseLayerName = this.value;
+            switchBaseLayer(baseLayerName);
+        });
+        // ------ FINE SEZIONE LAYER DI BASE ------ //
+
+        // ------ SEZIONE LAYER TEMATICI ------ //
+        var catasto = new ol.layer.Image({
+            source: new ol.source.ImageWMS({
+              url: "http://www502.regione.toscana.it/wmsraster/com.rt.wms.RTmap/wms?map=wmscatasto&map_resolution=91&",
+              params: {
+                LAYERS: ["rt_cat.idcatfabbr.rt"]
+              }
+            }),
+            maxResolution: 100,
+            name: "catasto"
+        });
+
+        map.addLayer(catasto);
+
+        var idrografia = new ol.layer.Image({
+            source: new ol.source.ImageWMS({
+             url: "http://www502.regione.toscana.it/wmsraster/com.rt.wms.RTmap/wms?map=wmsidrogr&map_resolution=91&",
+              params: {
+                LAYERS: ["rt_idrogr.corsi.rt.line"],
+                STYLES: ['senza_etichette'],
+                TRANSPARENT: true
+              }
+            }),
+            name: "idrografia"
+        });
+
+        map.addLayer(idrografia);
+        // ------ FINE SEZIONE LAYER TEMATICI ------ //
+
+        // ------ SEZIONE INTERROGAZIONE LAYER CATASTO ------ //
+        var popup = new ol.Overlay({
+            element: document.getElementById('results'),
+            autoPan: true,
+            autoPanAnimation: {
+              duration: 250
+            },
+            offset: [10,0]
+        });
+        map.addOverlay(popup);
+
+        map.on('click', function(evt) {
+            // ad ogni click sulla mappa nascondo l'overlay, nel caso fosse già visibile
+            popup.setPosition(undefined);
+            // al click sulla mappa interrogo il layer
+            queryLayer(evt.coordinate);
+        });
+
+        function queryLayer(coordinate){
+            var resolution = map.getView().getResolution();
+            var projection = map.getView().getProjection();
+            var info_format = "text/gml";
+            // costruisco la URL per la richiesta GetFeatureInfo
+            var queryUrl = catasto.getSource().getGetFeatureInfoUrl(coordinate, resolution, projection, {
+                INFO_FORMAT: info_format
+            });
+            //console.log(queryUrl);
+
+            // per evitare il blocco dovuto alla Cross-Origin devo passare tramite un proxy. Qui costruisco la URL "proxata"
+            queryUrl = utils.getProxiedUrl(queryUrl, PROXY_URL);
+            //console.log(queryUrl);
+
+            // eseguo la chiamata
+            $.get(queryUrl, function(response){
+                // la risposta potrebbe essere di tipo multipare (caso di Geoscopio) per cui tramite una funzione di utilità estraggo il GML dalla risposta
+                var gml = utils.getGML(response);
+                // interpreto il GML e ottengo le eventuali feature risultanti dall'interrogazione
+                var format = new ol.format.WMSGetFeatureInfo(({
+                  layers: ["rt_cat.idcatfabbr.rt"]
+                }));
+                var features = format.readFeatures(gml);
+                // se effettivamente ho ottenuto delle feature allora mostro i risultati
+                if (features.length) {
+                    showResults(features[0], coordinate);
+                }
+            })
+        };
+
+        var resultsLayer; // layer che conterrà le geometrie dei risultati, per mostrarli in mappa
+        function showResults(feature) {
+            // il layer viene creato solo la prima volta
+            if (!resultsLayer) {
+                resultsLayer = new ol.layer.Vector({
+                    source: new ol.source.Vector()
+                })
+                map.addLayer(resultsLayer);
+            };
+
+            // use the BBOX for the feature geometry
+            //feature.setGeometry(ol.geom.Polygon.fromExtent(feature.getGeometry().getExtent()));
+
+            // prendo il riferimento alla sorgente del layer dei risultati, la pulisco dei precedenti e aggiungo i nuovi elementi
+            var resultsSource = resultsLayer.getSource();
+            resultsSource.clear();
+            resultsSource.addFeatures([feature]);
+
+            // visualizzo gli attributi dentro l'elemento "#results"
+            var resultsEl = $("#results");
+            resultsEl.empty();
+
+            var attributes = feature.getProperties();
+
+            var tableEl = $("<table>");
+            // ciclo sulle chiavi delle proprietà della feature, ovvero i nomi dei campi dell'elemento
+            for (key in attributes) {
+                if (key == "geometryProperty") {
+                    continue;
+                }
+                var trEl = $("<tr>");
+                trEl.append($("<td class='fieldname'>" + key + "</td>"));
+                trEl.append($("<td>" + attributes[key] + "</td>"));
+                tableEl.append(trEl);
+            }
+            resultsEl.append(tableEl);
+
+            // posiziono il popup al vertice superiore destro del BBOX della geometria
+            var geomExtent = feature.getGeometry().getExtent();
+            var popupPosition = ol.extent.getTopRight(geomExtent);
+            popup.setPosition(popupPosition);
+        }
+        // ------ FINE SEZIONE INTERROGAZIONE LAYER CATASTO ------ //
+    </script>
+  </body>
+</html>

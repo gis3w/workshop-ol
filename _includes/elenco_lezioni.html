@@ -1,0 +1,8 @@
+{% assign lessons_docs = site.lessons | where_exp:"doc","doc.day == page.day" | sort: "n" %}
+<ul class="lessons-list">
+{% for doc in lessons_docs %}
+  <li>
+      <a class="post-link" href="{{ doc.url | relative_url }}">{{ doc.title | escape }}</a>
+  </li>
+{% endfor %}
+</ul>

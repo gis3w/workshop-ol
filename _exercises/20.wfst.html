@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - WFS-T</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+    <style>
+        .map {
+            height: 800px;
+        }
+    </style>
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <div><button id="save">Salva</button></div>
+    <script src="assets/js/jquery-3.2.1.min.js"></script>
+    <script src="assets/js/ol-debug.js"></script>
+    <script>
+        var modifyInteraction;
+
+        var map = new ol.Map({
+            layers: [
+              new ol.layer.Tile({
+                source: new ol.source.OSM()
+              })
+            ],
+            target: 'map',
+            view: new ol.View({
+              center: [1261220.67184,5425658.10783],
+              zoom: 11
+            })
+        });
+
+        // Layer WFS
+        var poligoniSource = new ol.source.Vector({
+			format: new ol.format.GeoJSON(),
+			url: function(extent) {
+			  return 'http://localhost/cgi-bin/qgis_mapserv.fcgi?map=/home/admin/Scrivania/qgis/wfst.qgs&SERVICE=WFS&' +
+				  'version=1.1.0&request=GetFeature&typename=aree_amministrative&' +
+				  'outputFormat=GeoJSON&srsname=EPSG:3857&' +
+				  'bbox=' + extent.join(',') + ',EPSG:3857';
+			},
+			strategy: ol.loadingstrategy.bbox
+		  });
+
+        var poligoni = new ol.layer.Vector({
+            source: poligoniSource
+        });
+        map.addLayer(poligoni);
+
+
+        // Inizializzazione
+        function startEditing(){
+            modifyInteraction = new ol.interaction.Modify({
+                source: poligoni.getSource()
+            });
+            map.addInteraction(modifyInteraction);
+        };
+
+        var initialized = false;
+        poligoniSource.on('change', function(){
+            if (!initialized && poligoniSource.getState() == 'ready'){
+                startEditing();
+                initialized = true;
+            }
+        });
+
+
+        // WFS-T
+        var options = {
+			srsName: "EPSG:3857",
+			featureNS: "",
+			featureType: "aree_amministrative"
+		};
+
+		var xs = new XMLSerializer();
+		var formatWFS = new ol.format.WFS();
+
+		var createTransactionMessage = function (action, features) {
+			var message;
+			switch (action) {
+				case 'insert':
+					message = formatWFS.writeTransaction(features, null, null, options);
+					break;
+				case 'update':
+					message = formatWFS.writeTransaction(null, features, null, options);
+					break;
+				case 'delete':
+					message = formatWFS.writeTransaction(null, null, features, options);
+					break;
+			}
+
+			var payload = xs.serializeToString(message);
+			$.ajax('http://localhost/cgi-bin/qgis_mapserv.fcgi?map=/home/admin/Scrivania/qgis/wfst.qgs', {
+				service: 'WFS',
+				type: 'POST',
+				dataType: 'xml',
+				processData: false,
+				contentType: 'text/xml',
+				data: payload
+			}).done(function(response) {
+				console.log(formatWFS.readTransactionResponse(response));
+			});
+		};
+
+
+		$("#save").click(function(){
+			var modFeatures = poligoniSource.getFeatures();
+			createTransactionMessage('update', modFeatures);
+		});
+    </script>
+  </body>
+</html>

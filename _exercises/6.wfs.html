@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - WFS</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <script src="assets/js/jquery-3.2.1.min.js"></script>
+    <script src="assets/js/ol-debug.js"></script>
+    <script>
+        var map = new ol.Map({
+            layers: [
+              new ol.layer.Tile({
+                source: new ol.source.OSM()
+              })
+            ],
+            target: 'map',
+            view: new ol.View({
+              center: [1253220.67184,5430658.10783],
+              zoom: 13
+            })
+        });
+
+        var particelleSource = new ol.source.Vector({
+            url: function(extent) {
+                var baseUrl = "http://www502.regione.toscana.it:80/wfsvector/com.rt.wfs.RTmap/wfs";
+                var layer = "sita:idcatastoparticellebbrtpoly";
+                var bbox =  extent.join(',');
+
+                return baseUrl + "&service=WFS&" +
+                "version=1.1.0&request=GetFeature&" +
+                "outputFormat=application/json&srsname=EPSG:3857&" +
+                "typename=" + layer + "&extent=" + bbox + "";
+
+            }
+            format: new ol.format.GeoJSON(), // oppure ol.format.GML2 / ol.format.GML3 in base a quello che offre il server WFS
+            strategy: ol.loadingstrategy.bbox
+        });
+
+        var fiumi = new ol.layer.Vector({
+            source: fiumiSource
+        })
+
+        map.addLayer(fiumi);
+    </script>
+  </body>
+</html>

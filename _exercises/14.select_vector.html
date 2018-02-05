@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - Selezione di elementi vettoriali</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+    <style>
+        .map {
+            height: 500px;
+        }
+        .results {
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .results table {
+            border-collapse: collapse;
+        }
+        .results table, th, td{
+            border: 1px solid grey
+        }
+        .results td{
+            padding: 3px;
+        }
+        .results td.fieldname {
+            font-weight: bold
+        }
+    </style>
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <div>
+        Tipo di selezione
+        <select id="seltype">
+            <option value="singlepoint">Puntuale - singola</option>
+            <option value="multipoint">Puntuale - multipla</option>
+            <option value="area">Areale</option>
+        </select>
+    </div>
+    <div id="results" class="results">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>quota</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <script src="assets/js/jquery-3.2.1.min.js"></script>
+    <script src="assets/js/ol-debug.js"></script>
+    <script>
+        var map = new ol.Map({
+            layers: [
+              new ol.layer.Tile({
+                source: new ol.source.OSM()
+              })
+            ],
+            target: 'map',
+            view: new ol.View({
+              center: [1253220.67184,5430658.10783],
+              zoom: 12
+            })
+        });
+
+        var poiSource = new ol.source.Vector({
+            url: "../assets/dati/poi.geojson",
+            format: new ol.format.GeoJSON()
+        });
+
+        var style = function(feature, res) {
+            var fillColor = [0, 153, 255, 1];
+            switch(feature.get("tipo")) {
+                case "A":
+                    fillColor = "#ff0000"
+                break;
+                case "B":
+                    fillColor = "#00ff00"
+                break;
+                case "C":
+                    fillColor = "#00ffff"
+                break;
+            };
+
+            return new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 6,
+                    fill: new ol.style.Fill({
+                        color: fillColor
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: [255, 255, 255, 1],
+                        width: 1.5
+                    })
+                })
+            })
+        };
+
+        var poi = new ol.layer.Vector({
+            source: poiSource,
+            style: style
+        });
+
+        map.addLayer(poi);
+
+        // stile applicato alle feature selezionate
+        var selectionStyle = new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({
+                    color: [255, 255, 0, 1]
+                }),
+                stroke: new ol.style.Stroke({
+                    color: [255, 255, 255, 1],
+                    width: 1.5
+                })
+            })
+        });
+
+        // interazione per la selezione singola
+        var singlePointSelection = new ol.interaction.Select({
+            layers: [poi],
+            style: selectionStyle,
+            toggleCondition: ol.events.condition.never
+        });
+        map.addInteraction(singlePointSelection);
+        singlePointSelection.on('select',function(evt){
+            // mostro gli attributi degli elementi selezionati
+            showAttributes(this.getFeatures().getArray());
+        });
+
+        // interazione per la selezione multipla
+        var multiPointSelection = new ol.interaction.Select({
+            layers: [poi],
+            style: selectionStyle
+        });
+        multiPointSelection.setActive(false);
+        map.addInteraction(multiPointSelection);
+        multiPointSelection.on('select',function(evt){
+            // mostro gli attributi degli elementi selezionati
+            showAttributes(this.getFeatures().getArray());
+        });
+
+        // interazione per la selezione per bbox
+        // layer vettoriale per mostrare in mappa i risultati della selezioen per BBOX
+        var bboxFeatureOverlay = new ol.layer.Vector({
+            source: new ol.source.Vector(),
+            style: selectionStyle,
+            updateWhileAnimating: true,
+            updateWhileInteracting: true
+        });
+        map.addLayer(bboxFeatureOverlay);
+
+        var bboxSelection = new ol.interaction.DragBox();
+        map.addInteraction(bboxSelection);
+        bboxSelection.setActive(false);
+        bboxSelection.on('boxend', function(evt) {
+            // cerco gli elementi puntuali che intersecano il rettangolo disegnato
+            var bboxGeometry = this.getGeometry();
+            var features = poi.getSource().getFeaturesInExtent(bboxGeometry.getExtent());
+
+            var bboxFeatureSource = bboxFeatureOverlay.getSource();
+            // tolgo i precdenti elementi dal layer dei risultati
+            bboxFeatureSource.clear();
+            // e aggiungo i nuovi
+            bboxFeatureSource.addFeatures(features);
+            // mostro gli attributi degli elementi selezionati
+            showAttributes(features);
+        });
+
+        // selezione del metodo di... selezione
+        var selectionInteractions = {
+            singlepoint: singlePointSelection,
+            multipoint: multiPointSelection,
+            area: bboxSelection
+        };
+
+        $('#seltype').on('change', function() {
+            setSelection(this.value);
+        });
+
+        function setSelection(selectionType) {
+            clearSelections();
+            for (type in selectionInteractions) {
+                var active = (type == selectionType);
+                var selectionInteraction = selectionInteractions[type];
+                selectionInteraction.setActive(active);
+            }
+        };
+        // fine selezione metodo
+
+        // rimozione delle selezioni (codice da considerare solo ai fini dell'esercizio!)
+        function clearSelections(){
+            singlePointSelection.getFeatures().clear();
+            multiPointSelection.getFeatures().clear();
+            bboxFeatureOverlay.getSource().clear();
+            tableBodyEl.empty();
+        };
+
+        // quando clicco in un qualsiasi punto della mappa rimuovo le selsezioni
+        map.on('click',function(){
+            clearSelections();
+        })
+
+        // mostro la tabella coi campi "id" e "quota"
+        var tableBodyEl = $("#results tbody");
+        function showAttributes(features) {
+            features.sort(function (f1, f2) {
+              return f1.get('id') - f2.get('id');
+            });
+
+            var featuresColl = new ol.Collection(features);
+            featuresColl.forEach(function(feature){
+                var trEl = $("<tr>");
+                var idEl = $("<td>"+ feature.get('id') +"</td>");
+                var quotaEl = $("<td>"+ feature.get('quota') +"</td>");
+                trEl.append(idEl);
+                trEl.append(quotaEl);
+                tableBodyEl.append(trEl);
+            })
+        };
+    </script>
+  </body>
+</html>

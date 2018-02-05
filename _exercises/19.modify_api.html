@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - Modifica di elementi vettoriali</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+    <style>
+        .map {
+            height: 500px;
+        }
+    </style>
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <script src="assets/js/jquery-3.2.1.min.js"></script>
+    <script src="assets/js/ol-debug.js"></script>
+    <script>
+        var map = new ol.Map({
+            layers: [
+              new ol.layer.Tile({
+                source: new ol.source.OSM()
+              })
+            ],
+            target: 'map',
+            view: new ol.View({
+              center: [1253220.67184,5430658.10783],
+              zoom: 12
+            })
+        });
+
+        var layer = new ol.layer.Vector();
+        var source = new ol.source.Vector();
+
+        var feature = new ol.Feature();
+        feature.setId(1);
+
+        var attributes = {
+            id: 1,
+            name: "Arno",
+            length: 241
+        };
+
+        feature.setProperties(attributes);
+
+        var point = new ol.geom.Point([1253220.67184,5430658.10783]);
+        //console.log(point);
+        feature.setGeometry(point);
+
+        point.clone().setCoordinates([0,0]);
+        //console.log(feature.getGeometry().getCoordinates());
+
+        source.addFeature(feature);
+        //console.log(source.getFeatureById(1).get("name"));
+
+        layer.setSource(source);
+        map.addLayer(layer);
+    </script>
+  </body>
+</html>

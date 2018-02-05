@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - WMS</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <script src="assets/js/ol-debug.js"></script>
+    <script>
+      var map = new ol.Map({
+        layers: [
+          new ol.layer.Tile({
+            source: new ol.source.OSM()
+          })
+        ],
+        target: 'map',
+        view: new ol.View({
+          center: [1253220.67184,5430658.10783],
+          zoom: 15
+        })
+      });
+
+      var ortofoto = new ol.layer.Image({
+        source: new ol.source.ImageWMS({
+          url: "http://www502.regione.toscana.it/ows_ofc/com.rt.wms.RTmap/wms?map=owsofc&map_resolution=91&",
+          params: {
+            layers: ["rt_ofc.5k16.32bit"]
+          }
+        })
+      });
+
+      map.addLayer(ortofoto);
+      ortofoto.setMaxResolution(305.748);
+      ortofoto.setOpacity(0.5);
+    </script>
+  </body>
+</html>

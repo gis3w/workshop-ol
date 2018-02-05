@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - Cluster</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <script src="assets/js/jquery-3.2.1.min.js"></script>
+    <script src="assets/js/ol-debug.js"></script>
+    <script>
+        var map = new ol.Map({
+            layers: [
+              new ol.layer.Tile({
+                source: new ol.source.OSM()
+              })
+            ],
+            target: 'map',
+            view: new ol.View({
+              center: [1253220.67184,5430658.10783],
+              zoom: 10
+            })
+        });
+
+        var styleCache = [];
+        clusterStyle = {
+            'cluster': function(feature) {
+              var size = feature.get('features').length;
+              var style = styleCache[size];
+              if (!style) {
+                style = new ol.style.Style({
+                  image: new ol.style.Circle({
+                    radius: 10,
+                    stroke: new ol.style.Stroke({
+                      color: '#fff'
+                    }),
+                    fill: new ol.style.Fill({
+                      color: '#3399CC'
+                    })
+                  }),
+                  text: new ol.style.Text({
+                    text: size.toString(),
+                    fill: new ol.style.Fill({
+                      color: '#fff'
+                    })
+                  })
+                });
+                styleCache[size] = style;
+              }
+              return style;
+            },
+            'simple': new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 6,
+                    fill: new ol.style.Fill({
+                        color: [255,0,0,0.5]
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: [255, 255, 255, 1],
+                        width: 1.5
+                    })
+                })
+            })
+        };
+
+        var seedsSource = new ol.source.Vector({
+            url: "/assets/dati/cluster_seeds.geojson",
+            format: new ol.format.GeoJSON()
+        });
+
+        seedsSource.on("change", function () {
+            if (seedsSource.getState() == 'ready') {
+                renderCluster(seedsSource);
+            }
+        });
+
+        var seeds = new ol.layer.Vector({
+            source: seedsSource,
+        })
+
+        map.addLayer(seeds);
+
+        function renderCluster(seedsSource, asCluster) {
+            asCluster = asCluster || true;
+            var randomSource = makeRandomPoints(seedsSource);
+
+            var pointsSource;
+            if (asCluster) {
+                pointsSource = new ol.source.Cluster({
+                    source: randomSource,
+                    distance: 40
+                });
+            }
+            else {
+                pointsSource = randomSource;
+            }
+
+            map.addLayer(new ol.layer.Vector({
+                source: pointsSource,
+                style: asCluster ? clusterStyle['cluster'] : clusterStyle['simple']
+            }));
+        }
+
+        function makeRandomPoints(source) {
+            var randomSource = new ol.source.Vector();;
+
+            var minDistance = 30;
+            var radius = 10000;
+            source.forEachFeature(function(feature) {
+                var npoints = Math.floor((Math.random() * 100) + 10);
+
+                var seedCoords = feature.getGeometry().getCoordinates();
+                var xCoord = seedCoords[0];
+                var yCoord = seedCoords[1];
+
+                for (var k=0; k < npoints; k++) {
+                    var M = Math.random() * radius;
+                    var phi = Math.random() * 2 * Math.PI;
+                    var x = xCoord + (M * Math.cos(phi));
+                    var y = yCoord + (M * Math.sin(phi));
+
+                    var feature = new ol.Feature({
+                        geometry: new ol.geom.Point([x,y])
+                    })
+                    randomSource.addFeature(feature);
+                }
+            })
+            return randomSource;
+        }
+    </script>
+  </body>
+</html>

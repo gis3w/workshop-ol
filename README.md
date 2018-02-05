@@ -1,0 +1,1 @@
+Documentazione di supporto al corso sull'utilizzo della libreria <a href="http://openlayers.org/" target="_blank">OpenLayers</a> per la fruizione di dati e servizi geografici su browser.

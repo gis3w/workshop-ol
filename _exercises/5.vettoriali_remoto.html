@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - Vettoriali da remoto</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <script src="assets/js/jquery-3.2.1.min.js"></script>
+    <script src="assets/js/ol-debug.js"></script>
+    <script>
+        var map = new ol.Map({
+            layers: [
+              new ol.layer.Tile({
+                source: new ol.source.OSM()
+              })
+            ],
+            target: 'map',
+            view: new ol.View({
+              center: [1253220.67184,5430658.10783],
+              zoom: 13
+            })
+        });
+
+        var fiumiSource = new ol.source.Vector({
+            url: "assets/dati/fiumi.geojson",
+            format: new ol.format.GeoJSON(),
+            loader: function(extent, res, proj) {
+                var self = this;
+               $.get(self.getUrl()) // this è l'istanza ol.source.Vector
+               .done(function(data) {
+                  self.addFeatures(self.getFormat().readFeatures(data));
+               })
+            }
+        });
+
+        var fiumi = new ol.layer.Vector({
+            source: fiumiSource
+        })
+
+        map.addLayer(fiumi);
+    </script>
+  </body>
+</html>

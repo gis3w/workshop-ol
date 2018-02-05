@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - Vettoriali</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <script src="assets/js/ol-debug.js"></script>
+    <script>
+        var firenzeCenter = [1253220.67184,5430658.10783];
+        var map = new ol.Map({
+        layers: [
+          new ol.layer.Tile({
+            source: new ol.source.OSM()
+          })
+        ],
+        target: 'map',
+        view: new ol.View({
+          center: firenzeCenter,
+          zoom: 8
+        })
+        });
+
+        var attributiFirenze = {
+          id: 14623,
+          nome: "Firenze",
+          cod: "D612",
+          istat: "048017"
+        };
+
+        var firenze = new ol.Feature();
+            firenze.setGeometry(firenzeCenter);
+            firenze.setProperties(attributiFirenze);
+
+        var comuni = new ol.source.Vector({
+          features: [firenze]
+        });
+
+        var layerComuni = new ol.layer.Vector({
+          source: comuni,
+          style: new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 3 * 2,
+                fill: new ol.style.Fill({
+                  color: [0, 153, 255, 1]
+                }),
+                stroke: new ol.style.Stroke({
+                  color: [255, 255, 255, 1],
+                  width: 3 / 2
+                })
+              })
+          })
+        });
+        map.addLayer(layerComuni);
+    </script>
+  </body>
+</html>

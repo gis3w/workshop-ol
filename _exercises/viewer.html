@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL</title>
+    <link rel="stylesheet" href="assets/css/ol.css">
+	<style>
+		.map {
+			height: 400px;
+			width: 800px;
+			float: left
+		}
+		.toc {
+			overflow: hidden;
+			padding: 0px 10px 0px 10px;
+		}
+		.popup {
+			padding: 20px;
+			background-color: white;
+			border: 1px solid lightgrey;
+			max-width: 400px;
+			max-height: 400px;
+		}
+        .toc .layername {
+            min-width: 100px;
+            display: inline-block
+        }
+        #tour {
+            margin-top: 20px
+        }
+        #tour .header {
+            margin: 10px 0px 10px 0px;
+        }
+	</style>
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+	<div id="toc" class="toc">
+		<div>LAYERS</div>
+		<div id="layers"></div>
+		<div id="tour">
+            <div class="header">TOUR ANIMATO DEI COMUNI</div>
+			<input type="button" id="start" value="Start" />
+			<input type="button" id="stop" value="Stop" />
+		</div>
+	</div>
+	<div id="popup" class="popup"></div>
+	<script src="assets/js/jquery-3.2.1.min.js"></script>
+	<script src="assets/js/proj4.js"></script>
+	<script src="http://epsg.io/3003.js"></script>
+    <script src="assets/js/ol-debug.js"></script>
+    <script src="assets/js/turf.min.js"></script>
+	<script src="assets/js/utils.js"></script>
+    <script>
+		var PROXY = "proxy.php?mode=native&url=";
+        //var PROXY = "proxy.php?mode=native&proxy=159.213.32.228:8080&url=";
+		var firenze4326 = [11.2596,43.7763];
+		var firenze3857 = ol.proj.transform(firenze4326, "EPSG:4326", "EPSG:3857");
+		
+		var map = new ol.Map({
+			layers: [
+				new ol.layer.Tile({
+					source: new ol.source.OSM(),
+					intoc: false
+				})
+			],
+			target: "map",
+			view: new ol.View({
+				center: firenze3857,
+				zoom: 10
+			})
+		});
+		
+		///////// LAYER WMS /////////
+		
+		var ortofoto = new ol.layer.Image({
+			source: new ol.source.ImageWMS({
+				url: "http://www502.regione.toscana.it/ows_ofc/com.rt.wms.RTmap/wms?map=owsofc&map_resolution=91&",
+				params: {
+					LAYERS: ['rt_ofc.5k16.32bit']
+				}
+			}),
+			maxResolution: map.getView().getResolutionForZoom(13),
+			name: "Ortofoto",
+			id: "ortofoto",
+			intoc: true,
+            legend: false,
+            visible: true,
+			queryable: false
+		});
+		map.addLayer(ortofoto);
+		
+		var suolo = new ol.layer.Image({
+			source: new ol.source.ImageWMS({
+				url: "http://www502.regione.toscana.it/wmsraster/com.rt.wms.RTmap/wms?map=wmsucs&map_resolution=91&",
+				params: {
+					LAYERS: ['rt_ucs.iducs.10k.2013.rt.full']
+				}
+			}),
+			maxResolution: map.getView().getResolutionForZoom(13),
+			name: "Uso del suolo",
+			id: "uso_suolo",
+			intoc: true,
+			legend: false,
+			visible: false,
+			queryable: true
+		});
+		map.addLayer(suolo);
+		
+		
+		var idrografia = new ol.layer.Image({
+			source: new ol.source.ImageWMS({
+				url: "http://www502.regione.toscana.it/wmsraster/com.rt.wms.RTmap/wms?map=wmsidrogr&map_resolution=91&",
+				params: {
+					LAYERS: ['rt_idrogr.corsi.rt.line']
+				}
+			}),
+			maxResolution: map.getView().getResolutionForZoom(13),
+			name: "Idrografia",
+			id: "idrografia",
+			intoc: true,
+			legend: false,
+			visible: false,
+			queryable: true
+		});
+		map.addLayer(idrografia);
+		
+		
+		var particelle = new ol.layer.Image({
+			source: new ol.source.ImageWMS({
+				url: "http://www502.regione.toscana.it/wmsraster/com.rt.wms.RTmap/wms?map=wmscatasto&map_resolution=91&",
+				params: {
+					LAYERS: ['rt_cat.idcatpart.rt']
+				}
+			}),
+			maxResolution: map.getView().getResolutionForZoom(13),
+			name: "Particelle",
+			id: "particelle",
+			intoc: true,
+			visible: false,
+			queryable: true
+		});
+		map.addLayer(particelle);
+        
+        ///////// LAYER VETTORIALE /////////
+		
+        var geojsonFormat = new ol.format.GeoJSON();
+		var style = function(feature, resolution){
+			var color = null;
+			switch(feature.get('COD_PRO')){
+				case 47:
+					color = [255,0,0,0.5]
+					break;
+				case 48:
+					color = [0,255,0,0.5]
+					break;
+				case 100:
+					color = [0,0,255,0.5]
+					break;
+			}
+			
+			var text = null;
+			if (resolution < 100) {
+				text = new ol.style.Text({
+					text: feature.get('COMUNE'),
+					font: 'bold 14px sans-serif',
+					fill: new ol.style.Fill({
+						color: [50,50,50,1]
+					}),
+                    stroke: new ol.style.Stroke({
+                        color: [255,255,255,0.4],
+                        width: 4
+                    })
+				});
+			}
+			
+			var style = new ol.style.Style({
+				fill: new ol.style.Fill({
+					color: color
+				}),
+				stroke: new ol.style.Stroke({
+					color: [100,100,100,1],
+					width: 1
+				}),
+				text: text,
+				geometry: geometry
+			});
+			
+			if (resolution > 500) {
+				// estensione della geometria
+				var extent = feature.getGeometry().getExtent();
+				// ottengo un punto di riferimento interno al poligono utilizzando la libreria TURF.js
+                var jsonFeature = geojsonFormat.writeFeatureObject(feature);
+                var jsonPointOnSurfaceFeature = turf.pointOnSurface(jsonFeature);
+                var geometry = geojsonFormat.readFeature(jsonPointOnSurfaceFeature).getGeometry();
+				
+				style = new ol.style.Style({
+					image: new ol.style.Circle({
+						radius: 4,
+						fill: new ol.style.Fill({
+							color: color
+						}),
+						stroke: new ol.style.Stroke({
+							color: [100,100,100,1],
+							width: 1
+						})
+					}),
+					geometry: geometry
+				});
+			}
+			
+			return [style];
+		};
+		
+		var comuni = new ol.layer.Vector({
+			source: new ol.source.Vector({
+				url: "assets/dati/poligoni.geojson",
+				/*url: function(extent, resolution) {
+					return "assets/dati/poligoni.geojson";
+				},*/
+				/*loader: function(extent, resolution){
+					var source = this;
+					var request = $.get("assets/dati/poligoni.geojson");
+					request.done(function(response){
+						var format = new ol.format.GeoJSON();
+						var features = format.readFeatures(response);
+						features.forEach(function(feature){
+							var geom3003 = feature.getGeometry();
+							geom3857 = geom3003.transform("EPSG:3003", "EPSG:3857");
+							feature.setGeometry(geom3857);
+						})
+						source.addFeatures(features);
+					})
+				},*/
+				format: new ol.format.GeoJSON
+			}),
+			updateWhileAnimating: true, // le feature appaiono disegnate per intero durante un'animazione
+			updateWhileInteracting: true, // e durante le interazioni dell'utente (pan/zoom/rotazione)
+			style: style,
+			name: "Comuni",
+			id: "comuni",
+			intoc: true,
+			visible: true,
+			queryable: true
+			//strategy: ol.loadingstrategy.bbox // da usare nel caso sia possibile ottenere i dati remoti in base all'estensione della view
+		});
+		map.addLayer(comuni);
+		
+		/*
+		Siccome il caricamento dei dati da remoto è asincrono, prima di adattare la vista ai dati
+		dobbiamo essere sicuri che la sorgente abbia finito di caricarli
+		*/
+		comuni.getSource().once('change', function(){
+			// this si riferisce a chi ha emesso l'evento, quindi in questo caso alla sorgente vettoriale
+			if (this.getState() == 'ready') {
+				map.getView().fit(this.getExtent(),{
+					constrainResolution: false,
+					padding: [10,10,10,10]
+				});
+			}
+		});
+		
+		/////////////////////////////////
+		// funzion di utilità per ottenere il riferimento di un layer nella mappa usando una sua proprietà
+		var getLayer = function(layerId){
+			var result = null;
+			map.getLayers().forEach(function(layer){
+				if (layer.get('id') == layerId){
+					result = layer;
+				}
+			})
+			return result;
+		};
+		
+		// csotruzione dell'URL per ottenere la legenda di un layer da un servizio WMS
+		getLegendUrl = function(layer){
+			var baseurl = layer.getSource().getUrl();
+			var layerId = layer.getSource().getParams().LAYERS[0];
+			var projCode = map.getView().getProjection().getCode();
+			var extent = map.getView().calculateExtent();
+			var size = map.getSize();
+			return baseurl + "&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&" +
+			"LAYER="+ layerId +"&FORMAT=image/png&" +
+			"SLD_VERSION=1.1.0&BBOX="+ extent.join(',') +"&WIDTH=" +size[0] +"&" +
+			"HEIGHT="+ size[1] +"&FORMAT=image/png&CRS=" + projCode;
+		};
+		
+		// aggiungo il layer alla TOC
+		var addToTOC = function(layer){
+			if (!layer.get('intoc')) {
+				return;
+			}
+		
+			var name = layer.get('name');
+			var id = layer.get('id');
+			var layerEl = $("<div id='"+ id +"'></div>");
+			
+            var disabled = "";
+            if (!layer.get("queryable")){
+                disabled = "disabled";
+            }
+            
+			var identifyEl = $("<input type='radio' name='identify' id='"+ id +"' value='"+ id +"' "+ disabled +"/>");
+			var visibleEl = $("<input type='checkbox' id='"+ id +"' />");
+			var nameEl = $("<span class='layername'> "+ name +" </span>");
+			var opacityEl = $("<input type='range' id='"+ id +"' min=0 max=100 value=100 />");
+			
+			layerEl.append(identifyEl);
+			layerEl.append(visibleEl);
+			layerEl.append(nameEl);
+			layerEl.append(opacityEl);
+			
+			var visible = layer.getVisible();
+			visibleEl.prop("checked", visible);
+			
+			if (layer.get('legend')){
+				var baseurl = layer.getSource().getUrl();
+				var url = getLegendUrl(layer);
+				var img = $("<div><img id="+ id +" src='"+ url +"' class='legend'></div>");
+				layerEl.append(img);
+			};
+			
+			$("#layers").append(layerEl);
+			
+			visibleEl.on("change", function(){
+				var visible = $(this).prop('checked');
+				layer.setVisible(visible);
+			});
+			
+			opacityEl.on("input", function(){
+				var opacity = $(this).val();
+				layer.setOpacity(opacity/100.0);
+			});
+		};
+		
+		// cicliamo sui layer (in ordine inverso) e aggiungiamo alla TOC
+		var layers = map.getLayers().getArray().slice().reverse();
+		layers.forEach(addToTOC);
+		
+		// Legenda contestuale
+		map.on('moveend',function(event){
+			var legends = $(".legend");
+			legends.each(function(img){
+				var layer = getLayer($(this).prop('id'));
+				var url = getLegendUrl(layer);
+				$(this).prop('src', url);
+			})
+		});
+		
+		// creo elemento contenitore per il popup
+		var popup = new ol.Overlay({
+			element: $("#popup")[0], // document.getElementById("popup")
+			autoPan: true,
+			positioning: 'center-left',
+			offset: [10,0]
+		});
+		map.addOverlay(popup);
+		
+        // layer di appoggio per mostrare la geometrie dei risultati delle interrogazioni
+		var resultLayer = new ol.layer.Vector({
+			source: new ol.source.Vector()
+		});
+		map.addLayer(resultLayer);
+		
+		var showResult = function(feature, layer, coordinate) {	
+			var popupEl = $("#popup");
+			
+			var popupTitle = $("<div><b>"+ layer.get('name') +"</b></div>");
+			popupEl.append(popupTitle);
+			
+			var n = 5;
+			var i = 0;
+			// ciclo sui nomi dei campi della feature
+			for(key in feature.getProperties()) {
+				// lo faccio per i primi 5 e solo se il campo non è "geometryProperty"
+				if (key != 'geometryProperty' && key != 'geometry' && i < n) {
+					// aggiungo campo / valore nel div del popup
+					var fieldEl = $("<div><span>"+ key +"</span>: <span>"+ feature.get(key) +"</span></div>");
+					popupEl.append(fieldEl);
+					i++;
+				}
+			};
+			
+			// mostro e posizioneo il popup
+			var geometry = feature.getGeometry();
+			if (geometry) {
+				resultLayer.getSource().addFeature(feature);
+				var extent = geometry.getExtent();
+				var x = extent[2];
+				var y = ol.extent.getCenter(extent)[1];
+				popup.setPosition([x,y]);
+			}
+			else {
+				popup.setPosition(coordinate);
+			}
+		};
+		
+		var interrogaWMS = function(layer, event){
+			var source = layer.getSource();
+			
+			// preparo i parametri della richieste GetFeatureInfo
+			var coordinate = event.coordinate;
+			var resolution = map.getView().getResolution();
+			var projection = map.getView().getProjection();
+			var params = {
+				INFO_FORMAT: "text/gml"
+			};
+			
+			// genero la URL della richiesta
+			var url = source.getGetFeatureInfoUrl(coordinate, resolution, projection, params);
+			// ne genero la versione "proxata"
+			url = utils.getProxiedUrl(url, PROXY);
+			
+			// eseguo la richiesta
+			var request = $.get(url);
+			request.done(function(response){
+				// ottengo l'id del layer su cui ho eseguito la GetFeatureInfo
+				var id = layer.getSource().getParams().LAYERS[0];
+				// estraggo il GML dal risultato di Geoscopio, che è multipart
+				response = utils.getGML(response);
+				// creo un parser dei risultati per il layer specifico
+				var parser = new ol.format.WMSGetFeatureInfo({
+					layers: [id]
+				});
+				// interpreto il GML per estrarne le features
+				var features = parser.readFeatures(response);
+				
+				if (features.length) {
+					// se ci sono feature le mostro nei risultati
+					showResult(features[0], layer, coordinate);
+				}
+				
+			});
+		};
+		
+        // interrogazione vettoriale semplice
+		var interrogaVettoriale2 = function(layer, event) {
+			var features = layer.getSource().getFeaturesAtCoordinate(event.coordinate);
+			showResult(features[0], layer, event.coordinate);
+		};
+        
+        // interrogazione più performante, consigliata in generale ma soprattutto se si hanno un  numero elevato di elementi vettoriali
+        var interrogaVettoriale = function(layer, event){
+			function hit(feature){
+				showResult(feature, layer, event.coordinate);
+			};
+			
+			var options = {
+				layerFilter: function(_layer){
+					return _layer.get('id') == layer.get('id');
+				}
+			};
+			
+			map.forEachFeatureAtPixel(event.pixel, hit, options);
+		};
+		
+		var identify = function(event){
+			var layerId = $("#layers input[name='identify']:checked").val();
+			if (!layerId) {
+				return;
+			}
+			
+			// rimuovo il popup dalla mappa
+			popup.setPosition();
+			// ne svuoto il contenuto
+			$("#popup").empty();
+			// svuoto il layer vettoriale dei risultati
+			resultLayer.getSource().clear();
+			
+			var layer = getLayer(layerId);
+			var source = layer.getSource();
+			
+			// a seconda del tipo di sorgente eseguo divensi tipi di interrogazione
+			switch(source.constructor){
+				case ol.source.ImageWMS:
+					interrogaWMS(layer, event);
+					break;
+				case ol.source.Vector:
+					interrogaVettoriale(layer, event);
+					break;
+				default:
+					alert("Non so chi sei");
+			}
+		};
+		
+		map.on('click', identify);
+		
+		//////////////////////////////////////////
+        
+        /////////// Tour animato del layer poligonale dei comuni /////////////
+		
+		// layer per evidenziare la feature verso cui si sta muovendo l'animazione
+		var highlightLayer = new ol.layer.Vector({
+			source: new ol.source.Vector(),
+			// bordo giallo spesso 3 pixel
+			style: new ol.style.Style({
+				stroke: new ol.style.Stroke({
+					color: [255,255,0],
+					width: 3
+				})
+			}),
+			updateWhileAnimating: true
+		});
+		map.addLayer(highlightLayer);
+		
+		// funzione ricorsiva per eseguire l'animazione
+		var timeout;
+		var i=0;
+		function animate(){
+			var features = comuni.getSource().getFeatures();
+			var k = i % features.length;
+			var feature = features[k];
+			
+			// svuoto il layer di evidenziazione e lo ripopolo con la feature attuale
+			highlightLayer.getSource().clear();
+			highlightLayer.getSource().addFeature(feature);
+			
+			map.getView().fit(feature.getGeometry(),{
+				duration: 2000,
+				constrainResolution: false,
+				padding: [10,10,10,10]
+			});
+			
+			i++;
+			// ripeto il fit ogni 3 secondi
+			timeout = setTimeout(animate, 3000);
+		}
+		
+		$("#start").on('click', function(){
+			animate();
+		});
+		
+		$("#stop").on('click', function(){ 
+            // rimuovo la geometria evidenziata
+			highlightLayer.getSource().clear();
+            // stoppo l'animazione della mappa
+            map.getView().cancelAnimations();
+            // stoppo il tour
+			clearTimeout(timeout);
+		});	
+    </script>
+  </body>
+</html>
+
+
+
+
+
+
+

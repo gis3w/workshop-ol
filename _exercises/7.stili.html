@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - Stili categorizzati</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <script src="assets/js/jquery-3.2.1.min.js"></script>
+    <script src="assets/js/ol-debug.js"></script>
+    <script>
+        var map = new ol.Map({
+            layers: [
+              new ol.layer.Tile({
+                source: new ol.source.OSM()
+              })
+            ],
+            target: 'map',
+            view: new ol.View({
+              center: [1253220.67184,5430658.10783],
+              zoom: 12
+            })
+        });
+
+        var poiSource = new ol.source.Vector({
+            url: "/assets/dati/poi.geojson",
+            format: new ol.format.GeoJSON()
+        });
+
+        var style = function(feature, res) {
+            var fillColor = [0, 153, 255, 1];
+            switch(feature.get("tipo")) {
+                case "A":
+                    fillColor = "#ff0000"
+                break;
+                case "B":
+                    fillColor = "#00ff00"
+                break;
+                case "C":
+                    fillColor = "#00ffff"
+                break;
+            };
+
+            return new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 6,
+                    fill: new ol.style.Fill({
+                        color: fillColor
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: [255, 255, 255, 1],
+                        width: 1.5
+                    })
+                })
+            })
+        }
+
+        var poi = new ol.layer.Vector({
+            source: poiSource,
+            style: style
+        })
+
+        map.addLayer(poi);
+    </script>
+  </body>
+</html>

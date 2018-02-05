@@ -1,0 +1,43 @@
+title: Corso OpenLayers
+author: Francesco Boccacci
+email: boccacci.francesco@gmail.com
+description: > # this means to ignore newlines until "baseurl:"
+  Supporto tecnico e consulenza GIS, database geografici, analisi dati, sviluppo software.
+baseurl: "/corso-ol3" # the subpath of your site, e.g. /blog
+url: "" # the base hostname & protocol for your site, e.g. http://example.com
+github_username:  volterra79
+linkedin_username: francesco-boccacci-2122a315
+defaults:
+  - scope:
+      path: ""
+      type: lessons
+    values:
+      layout: page
+  - scope:
+      path: "assets/img"
+    values:
+      image: true
+
+header_pages:
+ - intro.html
+ - view.html
+ #- query.html
+ #- edit.html
+
+collections:
+  lessons:
+    output: true
+    permalink: /:collection/:name
+
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+# exclude:
+#   - Gemfile
+#   - Gemfile.lock
+#   - node_modules
+#   - vendor/bundle/
+#   - vendor/cache/
+#   - vendor/gems/
+#   - vendor/ruby/

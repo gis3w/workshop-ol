@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Corso OL - BBOZ area</title>
+    <meta name="description" content="Corso OL3">
+    <meta name="author" content="Francesco Boccacci">
+    <link rel="stylesheet" href="assets/css/ol.css">
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+    <div id="togglebbox">
+        <input type="checkbox" id="togglebbxobtn" value="Attiva BBOX"/> Attiva BBOX
+    </div>
+    <div>Extent: <span id="extent"></span></div>
+    <script src="assets/js/jquery-3.2.1.min.js"></script>
+    <script src="assets/js/ol-debug.js"></script>
+    <script>
+        var map = new ol.Map({
+            layers: [
+              new ol.layer.Tile({
+                source: new ol.source.OSM()
+              })
+            ],
+            target: 'map',
+            view: new ol.View({
+              center: [1253220.67184,5430658.10783],
+              zoom: 10
+            })
+        });
+
+        var areaExtentInteraction = new ol.interaction.DragBox();
+
+        areaExtentInteraction.on('boxend',function(evt){
+            var extent = evt.target.getGeometry().getExtent();
+            $("#extent").html(extent.join(", "));
+        });
+
+        areaExtentInteraction.setActive(false);
+        map.addInteraction(areaExtentInteraction);
+
+        var toggleBBOXbtn = $("#togglebbxobtn");
+
+        toggleBBOXbtn.change(function(){
+            var activate = $(this).prop("checked");
+            $("#extent").html("");
+            areaExtentInteraction.setActive(activate);
+        });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+<figure class="image-{{ include.position | default: "center" }}">
+    <a href="{{ include.url | relative_url }}" data-lightbox="image-1" data-title="{{ include.description }}">
+        <img src="{{ include.url | relative_url }}" alt="{{ include.description }}" width="{{ include.width }}"/>
+    </a>
+    {% if include.caption and include.caption != "" %}
+    <figcaption>{{ include.caption }}</figcaption>
+    {% endif %}
+</figure>

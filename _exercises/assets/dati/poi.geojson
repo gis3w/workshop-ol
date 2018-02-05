@@ -1,0 +1,27 @@
+{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "tipo": "A", "quota": 91.63 }, "geometry": { "type": "Point", "coordinates": [ 1246198.7546599496, 5435469.6013667583 ] } },
+{ "type": "Feature", "properties": { "id": 3, "tipo": "B", "quota": 7.75 }, "geometry": { "type": "Point", "coordinates": [ 1251597.8380584808, 5431734.189015449 ] } },
+{ "type": "Feature", "properties": { "id": 2, "tipo": "A", "quota": 51.26 }, "geometry": { "type": "Point", "coordinates": [ 1247579.9155293412, 5426382.1906465562 ] } },
+{ "type": "Feature", "properties": { "id": 21, "tipo": "B", "quota": 18.34 }, "geometry": { "type": "Point", "coordinates": [ 1244064.2333163442, 5429066.0373359425 ] } },
+{ "type": "Feature", "properties": { "id": 5, "tipo": "C", "quota": 68.02 }, "geometry": { "type": "Point", "coordinates": [ 1255254.7753603929, 5427182.6361504076 ] } },
+{ "type": "Feature", "properties": { "id": 4, "tipo": "B", "quota": 77.34 }, "geometry": { "type": "Point", "coordinates": [ 1255992.4408247273, 5432267.81935135 ] } },
+{ "type": "Feature", "properties": { "id": 20, "tipo": "B", "quota": 85.33 }, "geometry": { "type": "Point", "coordinates": [ 1252806.3538191987, 5435296.9562580846 ] } },
+{ "type": "Feature", "properties": { "id": 19, "tipo": "B", "quota": 54.03 }, "geometry": { "type": "Point", "coordinates": [ 1247407.2704206672, 5428720.7471185941 ] } },
+{ "type": "Feature", "properties": { "id": 18, "tipo": "B", "quota": 16.9 }, "geometry": { "type": "Point", "coordinates": [ 1243075.4476939389, 5434857.4959814595 ] } },
+{ "type": "Feature", "properties": { "id": 17, "tipo": "D", "quota": 39.88 }, "geometry": { "type": "Point", "coordinates": [ 1245712.2093536865, 5430918.0485017169 ] } },
+{ "type": "Feature", "properties": { "id": 16, "tipo": "A", "quota": 47.22 }, "geometry": { "type": "Point", "coordinates": [ 1250813.0875645082, 5434559.2907937504 ] } },
+{ "type": "Feature", "properties": { "id": 15, "tipo": "A", "quota": 16.72 }, "geometry": { "type": "Point", "coordinates": [ 1251456.5829695659, 5426397.885656435 ] } },
+{ "type": "Feature", "properties": { "id": 14, "tipo": "D", "quota": 17.03 }, "geometry": { "type": "Point", "coordinates": [ 1250326.5422582452, 5426099.680468726 ] } },
+{ "type": "Feature", "properties": { "id": 13, "tipo": "D", "quota": 95.12 }, "geometry": { "type": "Point", "coordinates": [ 1249573.1817840317, 5425157.9798759585 ] } },
+{ "type": "Feature", "properties": { "id": 12, "tipo": "D", "quota": 58.99 }, "geometry": { "type": "Point", "coordinates": [ 1250310.8472483659, 5429427.0225631697 ] } },
+{ "type": "Feature", "properties": { "id": 11, "tipo": "A", "quota": 98.89 }, "geometry": { "type": "Point", "coordinates": [ 1252978.9989278726, 5427543.6213776357 ] } },
+{ "type": "Feature", "properties": { "id": 10, "tipo": "D", "quota": 42.47 }, "geometry": { "type": "Point", "coordinates": [ 1253669.5793625684, 5425848.5603106543 ] } },
+{ "type": "Feature", "properties": { "id": 9, "tipo": "B", "quota": 2.86 }, "geometry": { "type": "Point", "coordinates": [ 1256761.4963088203, 5425628.8301723422 ] } },
+{ "type": "Feature", "properties": { "id": 8, "tipo": "B", "quota": 62.75 }, "geometry": { "type": "Point", "coordinates": [ 1241521.641715873, 5431969.6141636409 ] } },
+{ "type": "Feature", "properties": { "id": 7, "tipo": "C", "quota": 86.93 }, "geometry": { "type": "Point", "coordinates": [ 1248615.7861813852, 5432738.6696477337 ] } },
+{ "type": "Feature", "properties": { "id": 6, "tipo": "A", "quota": 64.31 }, "geometry": { "type": "Point", "coordinates": [ 1256322.0360321957, 5434967.361050616 ] } }
+]
+}
