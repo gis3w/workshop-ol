@@ -21,7 +21,7 @@ defaults:
 header_pages:
  - intro.html
  - view.html
- #- query.html
+ - query.html
  #- edit.html
 
 collections:
