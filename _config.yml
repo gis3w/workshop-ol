@@ -3,7 +3,7 @@ author: Francesco Boccacci
 email: boccacci.francesco@gmail.com
 description: > # this means to ignore newlines until "baseurl:"
   Supporto tecnico e consulenza GIS, database geografici, analisi dati, sviluppo software.
-baseurl: "/corso-ol3" # the subpath of your site, e.g. /blog
+baseurl: "/workshop-ol" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  volterra79
 linkedin_username: francesco-boccacci-2122a315
