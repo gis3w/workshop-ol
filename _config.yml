@@ -23,6 +23,7 @@ header_pages:
  - intro.html
  - view.html
  - query.html
+ - wps.html
  - ol6.html
 
 collections:
